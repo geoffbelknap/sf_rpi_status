@@ -333,6 +333,16 @@ def get_boot_time():
     from psutil import boot_time
     return boot_time()
 
+def _is_virtual_interface(name):
+    virtual_prefixes = (
+        'br-',
+        'docker',
+        'lo',
+        'veth',
+        'virbr',
+    )
+    return name.startswith(virtual_prefixes)
+
 def _get_ips():
     import psutil
     import socket
@@ -341,7 +351,7 @@ def _get_ips():
     try:
         NIC_devices = psutil.net_if_addrs()
         for name, NIC in NIC_devices.items():
-            if name == 'lo':
+            if _is_virtual_interface(name):
                 continue
             try:
                 for af in NIC:
@@ -375,7 +385,7 @@ def get_macs():
     NIC_devices = []
     NIC_devices = listdir('/sys/class/net/')
     for NIC in NIC_devices:
-        if NIC == 'lo':
+        if _is_virtual_interface(NIC):
             continue
         try:
             with open('/sys/class/net/' + NIC + '/address', 'r') as f:
@@ -394,6 +404,8 @@ def get_network_connection_type():
     connection_type = []
     
     for interface, stats in interfaces.items():
+        if _is_virtual_interface(interface):
+            continue
         if stats.isup:
             if "eth" in interface or "enp" in interface or "ens" in interface:
                 connection_type.append("Wired")
